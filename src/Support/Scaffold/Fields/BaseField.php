@@ -3,6 +3,7 @@
 namespace Tir\Crud\Support\Scaffold\Fields;
 
 use Illuminate\Support\Arr;
+use Tir\Crud\Support\Enums\FilterType;
 
 abstract class BaseField
 {
@@ -25,7 +26,7 @@ abstract class BaseField
     protected bool $showOnDetail = true;
     protected bool $showOnCreating = true;
     protected bool $showOnEditing = true;
-    protected bool $sortable = true;
+    protected bool $sortable = false;
     protected bool $searchable = false;
     protected array $rules = [];
     protected array $creationRules = [];
@@ -33,16 +34,19 @@ abstract class BaseField
     protected array $options = [];
     protected array $data = [];
     protected array $filter = [];
+    protected FilterType | string $filterType = FilterType::Select;
     protected bool $filterable = false;
     protected bool $multiple = false;
     protected array $comment = [];
     protected $dataSet = [];
     protected bool $additional = false;
     protected bool $fillable = true;
+    protected bool $requestable = true;
+    protected mixed $filterQuery;
 
 
 
-    public static function make(string $name):static
+    public static function make(string $name): static
     {
         $obj = new static;
         $obj->init();
@@ -52,8 +56,8 @@ abstract class BaseField
         return $obj;
     }
 
-    protected function init():void{
-
+    protected function init(): void
+    {
     }
     public function page(string $page): BaseField
     {
@@ -182,11 +186,11 @@ abstract class BaseField
     public function hideFromAll($callback = true): BaseField
     {
         $this->showOnCreating =
-        $this->showOnEditing =
-        $this->showOnIndex =
-        $this->showOnDetail =
+            $this->showOnEditing =
+            $this->showOnIndex =
+            $this->showOnDetail =
             is_callable($callback) ? !call_user_func_array($callback, func_get_args())
-                : !$callback;
+            : !$callback;
         return $this;
     }
 
@@ -262,7 +266,7 @@ abstract class BaseField
     public function data(...$data): BaseField
     {
         $this->data = $data;
-        $this->dataSet = collect($data)->pluck('label','value');
+        $this->dataSet = collect($data)->pluck('label', 'value')->toArray();
         return $this;
     }
 
@@ -282,16 +286,28 @@ abstract class BaseField
         }
 
         return $this;
-
     }
+
+
+    public function filterType(FilterType | string $type): BaseField
+    {
+        $this->filterType = $type;
+        return $this;
+    }
+
+    public function filterQuery($queryFunction)
+    {
+        $this->filterQuery = $queryFunction;
+        return $this;
+    }
+
 
     protected function setValue($model): void
     {
-        if(isset($model)){
+        if (isset($model)) {
             $value = Arr::get($model, $this->name);
-            if($value)
-            {
-                $this->value = $value ;
+            if (isset($value)) {
+                $this->value = $value;
             }
         }
     }
@@ -301,5 +317,4 @@ abstract class BaseField
         $this->setValue($dataModel);
         return (object) get_object_vars($this);
     }
-
 }
